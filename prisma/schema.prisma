@@ -72,12 +72,24 @@ model AgentInstance {
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
-  userId    String
-  agentKey  String
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
-  ttfbMs    Int?
+  id         String    @id @default(cuid())
+  userId     String
+  agentKey   String
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  ttfbMs     Int?
+
+  // Identity snapshot at session time (denormalized so deletes don't lose history)
+  userName   String?
+  userEmail  String?
+  userImage  String?
+
+  // Where they used it from
+  ipAddress  String?
+  country    String?
+  city       String?
+  region     String?
+  userAgent  String? @db.Text
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]

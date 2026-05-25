@@ -19,6 +19,8 @@ interface TranscriptLine {
   tentative?: boolean
   createdAt: Date
   latencyMs?: number
+  // event_id from onAgentChatResponsePart used to match streaming deltas to a line
+  eventId?: number
 }
 
 const STATUS_LABEL: Record<OrbState, string> = {
@@ -26,13 +28,15 @@ const STATUS_LABEL: Record<OrbState, string> = {
   connecting: 'Connecting…',
   listening:  'Listening…',
   speaking:   'Speaking…',
+  paused:     'Paused — tap to resume',
 }
 
 const STATUS_COLORS: Record<OrbState, { dot: string; text: string; badge: string }> = {
-  idle:       { dot: 'bg-white/25',                text: 'text-white/40',     badge: 'border-white/10 bg-white/5' },
-  connecting: { dot: 'bg-violet-400 animate-pulse', text: 'text-violet-300',  badge: 'border-violet-500/25 bg-violet-500/10' },
-  listening:  { dot: 'bg-cyan-400 animate-pulse',   text: 'text-cyan-300',    badge: 'border-cyan-500/25 bg-cyan-500/10' },
-  speaking:   { dot: 'bg-fuchsia-400 animate-pulse', text: 'text-fuchsia-300', badge: 'border-fuchsia-500/25 bg-fuchsia-500/10' },
+  idle:       { dot: 'bg-white/25',                  text: 'text-white/40',     badge: 'border-white/10 bg-white/5' },
+  connecting: { dot: 'bg-violet-400 animate-pulse',  text: 'text-violet-300',   badge: 'border-violet-500/25 bg-violet-500/10' },
+  listening:  { dot: 'bg-cyan-400 animate-pulse',    text: 'text-cyan-300',     badge: 'border-cyan-500/25 bg-cyan-500/10' },
+  speaking:   { dot: 'bg-fuchsia-400 animate-pulse', text: 'text-fuchsia-300',  badge: 'border-fuchsia-500/25 bg-fuchsia-500/10' },
+  paused:     { dot: 'bg-amber-400',                 text: 'text-amber-300',    badge: 'border-amber-500/25 bg-amber-500/10' },
 }
 
 const NEBULA_COLOR: Record<string, string> = {
@@ -149,7 +153,7 @@ function VoiceDemoInner({
   const isSpeakingRef      = useRef(false)
   const goodbyeTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { status, isSpeaking, startSession, endSession } = useConversation({
+  const { status, isSpeaking, isMuted, setMuted, startSession, endSession } = useConversation({
     onDisconnect: () => {
       if (agentIdRef.current) {
         reconnectTimer.current = setTimeout(() => {
@@ -158,6 +162,25 @@ function VoiceDemoInner({
       }
     },
     onError: (err) => console.error('[ElevenLabs]', err),
+    onAgentChatResponsePart: ({ text, type, event_id }: { text: string; type: 'start' | 'delta' | 'stop'; event_id: number }) => {
+      if (type === 'start') {
+        setLines((prev) => [
+          ...prev,
+          {
+            id: nextId.current++,
+            role: 'agent',
+            text: '',
+            tentative: true,
+            createdAt: new Date(),
+            eventId: event_id,
+          },
+        ])
+      } else if (type === 'delta') {
+        setLines((prev) =>
+          prev.map((l) => (l.eventId === event_id ? { ...l, text: l.text + text } : l)),
+        )
+      }
+    },
     onMessage: (msg) => {
       const role = msg.role === 'user' ? 'user' : 'agent'
       const now  = Date.now()
@@ -239,6 +262,7 @@ function VoiceDemoInner({
 
   const orbState: OrbState =
     status === 'connecting'                ? 'connecting'
+    : status === 'connected' && isMuted    ? 'paused'
     : status === 'connected' && isSpeaking ? 'speaking'
     : status === 'connected'               ? 'listening'
     : 'idle'
@@ -307,7 +331,10 @@ function VoiceDemoInner({
 
   const handleOrbClick = () => {
     if (status === 'connected') {
-      stopSession()
+      // Orb click while connected = pause/resume mic. Session stays alive
+      // so the agent keeps its context. Use the "End conversation" button to
+      // actually stop and save the transcript.
+      setMuted(!isMuted)
     } else if (status === 'disconnected') {
       const id = agentIds[selectedAgent.key]
       agentIdRef.current = id
@@ -441,7 +468,7 @@ function VoiceDemoInner({
         {lines.length > 0 && (
           <div
             ref={scrollRef}
-            className="w-full max-h-40 overflow-y-auto flex flex-col gap-2.5"
+            className="w-full max-h-72 overflow-y-auto flex flex-col gap-2.5"
             style={{ scrollbarWidth: 'none' }}
           >
             {lines.map((line) => (
@@ -489,7 +516,7 @@ function VoiceDemoInner({
           {status === 'connected' && (
             <button
               onClick={() => stopSession()}
-              className="text-[11px] text-white/20 hover:text-white/50 transition-colors"
+              className="text-xs px-3 py-1 rounded-full border border-red-500/25 bg-red-500/10 text-red-300/80 hover:text-red-200 hover:bg-red-500/15 transition-colors"
             >
               End conversation
             </button>

@@ -2,7 +2,7 @@
 
 import type { AgentTheme } from '@/config/agentConfig'
 
-export type OrbState = 'idle' | 'connecting' | 'listening' | 'speaking'
+export type OrbState = 'idle' | 'connecting' | 'listening' | 'speaking' | 'paused'
 
 const IDLE_BY_THEME: Record<AgentTheme, { gradient: string; glow: string; ripple: string }> = {
   purple: {
@@ -39,6 +39,7 @@ const ANIM: Record<OrbState, string> = {
   connecting: '',
   listening:  'animate-orbListen',
   speaking:   'animate-orbSpeak',
+  paused:     '',
 }
 
 const RIPPLE_COUNT: Partial<Record<OrbState, number>> = { listening: 3, speaking: 2 }
@@ -56,6 +57,8 @@ export function Orb({ state, theme, onClick, disabled }: OrbProps) {
     state === 'speaking'  ? SPEAKING
     : state === 'listening' ? LISTENING
     : IDLE_BY_THEME[theme]
+
+  const isPaused = state === 'paused'
 
   const rippleCount = RIPPLE_COUNT[state] ?? 0
   const rippleMs    = RIPPLE_MS[state] ?? 2000
@@ -91,8 +94,13 @@ export function Orb({ state, theme, onClick, disabled }: OrbProps) {
       )}
 
       <div
-        className={`relative rounded-full transition-[background,box-shadow] duration-700 ${ANIM[state]}`}
-        style={{ width: 200, height: 200, background: base.gradient, boxShadow: base.glow }}
+        className={`relative rounded-full transition-[background,box-shadow,filter] duration-700 ${ANIM[state]}`}
+        style={{
+          width: 200, height: 200,
+          background: base.gradient,
+          boxShadow: base.glow,
+          filter: isPaused ? 'saturate(0.3) brightness(0.6)' : undefined,
+        }}
       >
         <div
           className="absolute inset-0 rounded-full"

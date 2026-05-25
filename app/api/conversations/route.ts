@@ -21,6 +21,14 @@ export async function POST(req: Request) {
     const userId = session.user.id
     const durationMs = new Date(endedAt).getTime() - new Date(startedAt).getTime()
 
+    const h = req.headers
+    const forwardedFor = h.get('x-forwarded-for')
+    const ipAddress = forwardedFor ? forwardedFor.split(',')[0].trim() : h.get('x-real-ip')
+    const country   = h.get('x-vercel-ip-country')
+    const city      = h.get('x-vercel-ip-city')
+    const region    = h.get('x-vercel-ip-country-region')
+    const userAgent = h.get('user-agent')
+
     const conversation = await prisma.conversation.create({
       data: {
         userId,
@@ -28,6 +36,14 @@ export async function POST(req: Request) {
         startedAt: new Date(startedAt),
         endedAt: new Date(endedAt),
         ttfbMs: typeof ttfbMs === 'number' ? ttfbMs : null,
+        userName:  session.user.name ?? null,
+        userEmail: session.user.email ?? null,
+        userImage: session.user.image ?? null,
+        ipAddress: ipAddress ?? null,
+        country:   country ?? null,
+        city:      city ? decodeURIComponent(city) : null,
+        region:    region ?? null,
+        userAgent: userAgent ?? null,
         messages: {
           create: (messages as MessagePayload[]).map((m) => ({
             role: m.role,
