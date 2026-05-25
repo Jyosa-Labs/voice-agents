@@ -51,6 +51,15 @@ function formatSlots(
   return { display: allDisplay.join(' | '), slots_with_utc }
 }
 
+const MAX_HORIZON_DAYS = 60
+
+function dateInTz(when: Date, timezone: string): string {
+  // Returns YYYY-MM-DD in the given timezone
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(when)
+}
+
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -63,6 +72,19 @@ export async function POST(req: Request) {
       ? time_of_day
       : undefined
   logger.info('tools.cal.availability', { date, timezone, duration, time_of_day: timeOfDay })
+
+  // Guardrail: reject past dates and dates beyond horizon
+  const today = dateInTz(new Date(), timezone)
+  const maxDate = dateInTz(new Date(Date.now() + MAX_HORIZON_DAYS * 24 * 60 * 60 * 1000), timezone)
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return Response.json({ available: false, message: 'Invalid date format. Use YYYY-MM-DD.' })
+  }
+  if (date < today) {
+    return Response.json({ available: false, message: `${date} is in the past — please pick a future date.` })
+  }
+  if (date > maxDate) {
+    return Response.json({ available: false, message: `${date} is too far out — bookings are limited to ${MAX_HORIZON_DAYS} days ahead.` })
+  }
 
   const params = new URLSearchParams({
     username:      process.env.CAL_COM_USERNAME!,

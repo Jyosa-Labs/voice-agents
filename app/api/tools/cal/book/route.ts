@@ -1,6 +1,9 @@
 import { auth } from '@/auth'
 import { logger } from '@/lib/logger'
 
+const MIN_LEAD_MINUTES = 60
+const MAX_HORIZON_DAYS = 60
+
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -9,6 +12,25 @@ export async function POST(req: Request) {
 
   const { start_utc, attendee_name, attendee_email, attendee_timezone = 'Asia/Kolkata' } = await req.json()
   logger.info('tools.cal.book', { start_utc, attendee_name, attendee_email })
+
+  // Guardrail: validate start_utc is real, future, within lead time and horizon
+  const startMs = new Date(start_utc).getTime()
+  if (Number.isNaN(startMs)) {
+    return Response.json({ success: false, message: 'Invalid start time format.' })
+  }
+  const now = Date.now()
+  if (startMs < now + MIN_LEAD_MINUTES * 60 * 1000) {
+    return Response.json({
+      success: false,
+      message: `That slot is too soon — please pick a time at least ${MIN_LEAD_MINUTES} minutes from now.`,
+    })
+  }
+  if (startMs > now + MAX_HORIZON_DAYS * 24 * 60 * 60 * 1000) {
+    return Response.json({
+      success: false,
+      message: `That slot is too far out — bookings are limited to ${MAX_HORIZON_DAYS} days ahead.`,
+    })
+  }
 
   const body = {
     start:         start_utc,
