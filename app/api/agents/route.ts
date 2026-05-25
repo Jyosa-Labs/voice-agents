@@ -48,7 +48,10 @@ export async function GET() {
             tts: {
               voice_id: agent.voiceId,
               model_id: 'eleven_flash_v2',
-              optimize_streaming_latency: 4,
+              // 2 = strong latency optimization while still buffering enough audio
+              // that the first word doesn't clip while the browser audio pipeline
+              // warms up. 4 was clipping the first ~word of the greeting.
+              optimize_streaming_latency: 2,
             },
             conversation: {
               // Streaming agent_chat_response_part is intentionally OFF — when

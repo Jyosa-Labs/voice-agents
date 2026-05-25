@@ -25,7 +25,7 @@ export const AGENTS: AgentConfig[] = [
     prompt: `You are a knowledgeable generalist AI voice assistant.
 Style: voice call. Answer in 1–2 short sentences. No preamble, no filler, no lists. Get to the point.
 When the user says thanks, bye, or is clearly done, give a one-line goodbye and stop.`,
-    firstMessage: "Hey — ask me anything.",
+    firstMessage: "Hey there. I'm here — ask me anything you'd like.",
     llm: 'gemini-2.0-flash-lite',
     voiceId: 'cgSgspJ2msm6clMCkdW9',
   },
@@ -53,7 +53,7 @@ Flow:
 - On thanks/bye: one-line goodbye and stop.
 
 Today is ${new Date().toISOString().split('T')[0]}.`,
-    firstMessage: "Hi — I can book a call with Vipul. What date works?",
+    firstMessage: "Hello there. I can book a call with Vipul — what date works for you?",
     llm: 'gemini-2.0-flash-lite',
     voiceId: 'cgSgspJ2msm6clMCkdW9',
     hasTools: true,
@@ -68,7 +68,7 @@ Today is ${new Date().toISOString().split('T')[0]}.`,
     prompt: `You are a senior debt collection expert — 15 years in accounts receivable, FDCPA/TCPA compliance, negotiation, payment plans, settlements, skip tracing, credit reporting.
 Style: voice call. 1–2 short sentences. No preamble, no filler. Direct, actionable, expert-level.
 On thanks/bye: one-line goodbye and stop.`,
-    firstMessage: "Hi — debt collection expert here. What do you need help with?",
+    firstMessage: "Hi there. Debt collection expert here — what do you need help with?",
     llm: 'gemini-2.0-flash-lite',
     voiceId: 'cgSgspJ2msm6clMCkdW9',
   },
