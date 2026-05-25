@@ -152,6 +152,7 @@ function VoiceDemoInner({
   const stopRef            = useRef<(() => void) | null>(null)
   const isSpeakingRef      = useRef(false)
   const goodbyeTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const firstMessageShownRef = useRef(false)
 
   const { status, isSpeaking, isMuted, setMuted, startSession, endSession } = useConversation({
     onDisconnect: () => {
@@ -293,6 +294,28 @@ function VoiceDemoInner({
 
   isSpeakingRef.current = isSpeaking
 
+  // The configured first_message often doesn't come through onMessage or the
+  // streaming events. Show it on the transcript exactly when the agent starts
+  // speaking — that matches what the user hears.
+  useEffect(() => {
+    if (isSpeaking && !firstMessageShownRef.current && status === 'connected') {
+      firstMessageShownRef.current = true
+      setLines((prev) => {
+        if (prev.some((l) => l.role === 'agent')) return prev
+        return [
+          ...prev,
+          {
+            id: nextId.current++,
+            role: 'agent',
+            text: selectedAgent.firstMessage,
+            tentative: false,
+            createdAt: new Date(),
+          },
+        ]
+      })
+    }
+  }, [isSpeaking, status, selectedAgent.firstMessage])
+
   // Auto-end session after agent finishes speaking a farewell.
   // Debounced 1.5s to avoid firing during brief pauses between TTS chunks.
   useEffect(() => {
@@ -365,6 +388,7 @@ function VoiceDemoInner({
     sessionStart.current  = null
     ttfbMs.current        = null
     lastUserMsgAt.current = null
+    firstMessageShownRef.current = false
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
     endSession()
     setLines([])
@@ -387,18 +411,7 @@ function VoiceDemoInner({
       const id = agentIds[selectedAgent.key]
       agentIdRef.current = id
       sessionStart.current = new Date()
-      // Pre-populate the agent's first message so the user sees it immediately
-      // (the SDK doesn't always fire onMessage for the configured first_message).
-      // onMessage's dedupe-by-text will skip the duplicate if it does fire.
-      setLines([
-        {
-          id: nextId.current++,
-          role: 'agent',
-          text: selectedAgent.firstMessage,
-          tentative: false,
-          createdAt: new Date(),
-        },
-      ])
+      firstMessageShownRef.current = false
       startSession({ agentId: id })
       logUsage(selectedAgent.key, 'session_started')
     }
