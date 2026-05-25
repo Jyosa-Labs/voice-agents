@@ -48,6 +48,20 @@ export async function GET() {
             tts: {
               voice_id: agent.voiceId,
               model_id: 'eleven_flash_v2',
+              optimize_streaming_latency: 4,
+            },
+            conversation: {
+              // Includes agent_chat_response_part so the client SDK's
+              // onAgentChatResponsePart callback fires (live streaming text).
+              client_events: [
+                'audio',
+                'interruption',
+                'agent_response',
+                'user_transcript',
+                'agent_response_correction',
+                'agent_tool_response',
+                'agent_chat_response_part',
+              ],
             },
           },
         }

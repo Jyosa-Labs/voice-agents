@@ -163,7 +163,6 @@ function VoiceDemoInner({
     },
     onError: (err) => console.error('[ElevenLabs]', err),
     onAgentChatResponsePart: ({ text, type, event_id }: { text: string; type: 'start' | 'delta' | 'stop'; event_id: number }) => {
-      console.log('[el] onAgentChatResponsePart', { type, event_id, text: text?.slice(0, 40) })
       if (type === 'start') {
         setLines((prev) => [
           ...prev,
@@ -189,7 +188,6 @@ function VoiceDemoInner({
       }
     },
     onMessage: (msg) => {
-      console.log('[el] onMessage', msg)
       const role = msg.role === 'user' ? 'user' : 'agent'
       const now  = Date.now()
       serverLog('message', { role, text: msg.message })
