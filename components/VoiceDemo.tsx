@@ -164,28 +164,28 @@ function VoiceDemoInner({
     onError: (err) => console.error('[ElevenLabs]', err),
     onAgentChatResponsePart: ({ text, type, event_id }: { text: string; type: 'start' | 'delta' | 'stop'; event_id: number }) => {
       if (type === 'start') {
-        setLines((prev) => [
-          ...prev,
-          {
-            id: nextId.current++,
-            role: 'agent',
-            text: '',
-            tentative: true,
-            createdAt: new Date(),
-            eventId: event_id,
-          },
-        ])
+        // Only create the streaming bubble if one doesn't already exist for this event_id
+        setLines((prev) => {
+          if (prev.some((l) => l.eventId === event_id)) return prev
+          return [
+            ...prev,
+            {
+              id: nextId.current++,
+              role: 'agent',
+              text: '',
+              tentative: true,
+              createdAt: new Date(),
+              eventId: event_id,
+            },
+          ]
+        })
       } else if (type === 'delta') {
         setLines((prev) =>
           prev.map((l) => (l.eventId === event_id ? { ...l, text: l.text + text } : l)),
         )
-      } else if (type === 'stop') {
-        // Finalize the streamed line even if onMessage never fires for it
-        // (some SDK versions suppress onMessage for agent text when a streaming handler is registered).
-        setLines((prev) =>
-          prev.map((l) => (l.eventId === event_id ? { ...l, tentative: false } : l)),
-        )
       }
+      // We deliberately do NOT finalize on type==='stop' — onMessage will do that
+      // via event_id match, ensuring a single source of truth and no duplicates.
     },
     onMessage: (msg) => {
       const role = msg.role === 'user' ? 'user' : 'agent'
@@ -231,6 +231,24 @@ function VoiceDemoInner({
       }
 
       setLines((prev) => {
+        // 1. Primary match: a line tagged with the same event_id and role (handles the
+        //    streaming→final handoff for agent messages, and protects against any
+        //    duplicate onMessage call).
+        const msgEventId = (msg as { event_id?: number }).event_id
+        if (msgEventId !== undefined) {
+          const idx = prev.findIndex((l) => l.eventId === msgEventId && l.role === role)
+          if (idx !== -1) {
+            const updated = [...prev]
+            updated[idx] = {
+              ...updated[idx],
+              text: msg.message,
+              tentative: false,
+              ...(turnLatency !== undefined && { latencyMs: turnLatency }),
+            }
+            return updated
+          }
+        }
+        // 2. Fallback: any tentative line with the same role (older behaviour)
         const lastIdx = [...prev].reverse().findIndex((l) => l.tentative && l.role === role)
         if (lastIdx !== -1) {
           const realIdx = prev.length - 1 - lastIdx
@@ -239,10 +257,19 @@ function VoiceDemoInner({
             ...updated[realIdx],
             text: msg.message,
             tentative: false,
+            eventId: msgEventId,
             ...(turnLatency !== undefined && { latencyMs: turnLatency }),
           }
           return updated
         }
+        // 3. Dedup: if the most recent finalized line has identical role+text, skip.
+        //    Covers the case where we pre-populated first_message and the SDK then
+        //    also fires onMessage for it.
+        const last = prev[prev.length - 1]
+        if (last && last.role === role && last.text === msg.message && !last.tentative) {
+          return prev
+        }
+        // 4. Append a brand-new line, tagged with event_id for future updates.
         return [
           ...prev,
           {
@@ -251,6 +278,7 @@ function VoiceDemoInner({
             text: msg.message,
             tentative: false,
             createdAt: new Date(),
+            eventId: msgEventId,
             ...(turnLatency !== undefined && { latencyMs: turnLatency }),
           },
         ]
@@ -359,6 +387,18 @@ function VoiceDemoInner({
       const id = agentIds[selectedAgent.key]
       agentIdRef.current = id
       sessionStart.current = new Date()
+      // Pre-populate the agent's first message so the user sees it immediately
+      // (the SDK doesn't always fire onMessage for the configured first_message).
+      // onMessage's dedupe-by-text will skip the duplicate if it does fire.
+      setLines([
+        {
+          id: nextId.current++,
+          role: 'agent',
+          text: selectedAgent.firstMessage,
+          tentative: false,
+          createdAt: new Date(),
+        },
+      ])
       startSession({ agentId: id })
       logUsage(selectedAgent.key, 'session_started')
     }
