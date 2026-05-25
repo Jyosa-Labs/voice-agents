@@ -27,7 +27,7 @@ Style: voice call. Answer in 1–2 short sentences. No preamble, no filler, no l
 When the user says thanks, bye, or is clearly done, give a one-line goodbye and stop.`,
     firstMessage: "Hey — ask me anything.",
     llm: 'gemini-2.0-flash-lite',
-    voiceId: '21m00Tcm4TlvDq8ikWAM',
+    voiceId: 'cgSgspJ2msm6clMCkdW9',
   },
   {
     key: 'booking',
@@ -55,7 +55,7 @@ Flow:
 Today is ${new Date().toISOString().split('T')[0]}.`,
     firstMessage: "Hi — I can book a call with Vipul. What date works?",
     llm: 'gemini-2.0-flash-lite',
-    voiceId: '21m00Tcm4TlvDq8ikWAM',
+    voiceId: 'cgSgspJ2msm6clMCkdW9',
     hasTools: true,
   },
   {
@@ -70,6 +70,6 @@ Style: voice call. 1–2 short sentences. No preamble, no filler. Direct, action
 On thanks/bye: one-line goodbye and stop.`,
     firstMessage: "Hi — debt collection expert here. What do you need help with?",
     llm: 'gemini-2.0-flash-lite',
-    voiceId: '21m00Tcm4TlvDq8ikWAM',
+    voiceId: 'cgSgspJ2msm6clMCkdW9',
   },
 ]
