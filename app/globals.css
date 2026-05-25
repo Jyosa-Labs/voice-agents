@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #07070f;
+}
+
+/* ── Orb animations ── */
+@keyframes orbIdle {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.04);
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes orbListen {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.055);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes orbSpeak {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.07);
+    filter: brightness(1.25);
+  }
+}
+
+/* ── Ripple rings ── */
+@keyframes rippleOut {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* ── Audio bars ── */
+@keyframes barBounce {
+  0%   { transform: scaleY(0.12); }
+  100% { transform: scaleY(1); }
+}
+
+/* ── Page entrance ── */
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Background nebula drift ── */
+@keyframes nebulaDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(30px, -20px) scale(1.05); }
+  66%       { transform: translate(-20px, 15px) scale(0.97); }
+}
+
+@keyframes nebulaDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-25px, 20px) scale(1.04); }
+  66%       { transform: translate(20px, -15px) scale(0.98); }
+}
+
+/* ── Connecting spinner ── */
+@keyframes spinOrb {
+  to { transform: rotate(360deg); }
+}
+
+/* Utility classes */
+.animate-fadeUp    { animation: fadeUp 0.75s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-orbIdle   { animation: orbIdle 3.2s ease-in-out infinite; }
+.animate-orbListen { animation: orbListen 1.8s ease-in-out infinite; }
+.animate-orbSpeak  { animation: orbSpeak 0.65s ease-in-out infinite alternate; }
+.animate-spinOrb   { animation: spinOrb 1.1s linear infinite; }
