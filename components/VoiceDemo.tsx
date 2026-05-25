@@ -153,6 +153,7 @@ function VoiceDemoInner({
   const isSpeakingRef      = useRef(false)
   const goodbyeTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
   const firstMessageShownRef = useRef(false)
+  const firstMessageStartedRef = useRef(false)
 
   const { status, isSpeaking, isMuted, setMuted, startSession, endSession } = useConversation({
     onDisconnect: () => {
@@ -163,31 +164,6 @@ function VoiceDemoInner({
       }
     },
     onError: (err) => console.error('[ElevenLabs]', err),
-    onAgentChatResponsePart: ({ text, type, event_id }: { text: string; type: 'start' | 'delta' | 'stop'; event_id: number }) => {
-      if (type === 'start') {
-        // Only create the streaming bubble if one doesn't already exist for this event_id
-        setLines((prev) => {
-          if (prev.some((l) => l.eventId === event_id)) return prev
-          return [
-            ...prev,
-            {
-              id: nextId.current++,
-              role: 'agent',
-              text: '',
-              tentative: true,
-              createdAt: new Date(),
-              eventId: event_id,
-            },
-          ]
-        })
-      } else if (type === 'delta') {
-        setLines((prev) =>
-          prev.map((l) => (l.eventId === event_id ? { ...l, text: l.text + text } : l)),
-        )
-      }
-      // We deliberately do NOT finalize on type==='stop' — onMessage will do that
-      // via event_id match, ensuring a single source of truth and no duplicates.
-    },
     onMessage: (msg) => {
       const role = msg.role === 'user' ? 'user' : 'agent'
       const now  = Date.now()
@@ -294,11 +270,17 @@ function VoiceDemoInner({
 
   isSpeakingRef.current = isSpeaking
 
-  // The configured first_message often doesn't come through onMessage or the
-  // streaming events. Show it on the transcript exactly when the agent starts
-  // speaking — that matches what the user hears.
+  // The configured first_message doesn't come through onMessage. Show it
+  // on the transcript when the agent FINISHES saying it (isSpeaking flips
+  // from true to false the first time). Matches the "text after speech"
+  // timing of all other turns and avoids showing text before any audio.
   useEffect(() => {
-    if (isSpeaking && !firstMessageShownRef.current && status === 'connected') {
+    if (status !== 'connected') return
+    if (isSpeaking) {
+      firstMessageStartedRef.current = true
+      return
+    }
+    if (firstMessageStartedRef.current && !firstMessageShownRef.current) {
       firstMessageShownRef.current = true
       setLines((prev) => {
         if (prev.some((l) => l.role === 'agent')) return prev
@@ -389,6 +371,7 @@ function VoiceDemoInner({
     ttfbMs.current        = null
     lastUserMsgAt.current = null
     firstMessageShownRef.current = false
+    firstMessageStartedRef.current = false
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
     endSession()
     setLines([])
@@ -412,6 +395,7 @@ function VoiceDemoInner({
       agentIdRef.current = id
       sessionStart.current = new Date()
       firstMessageShownRef.current = false
+      firstMessageStartedRef.current = false
       startSession({ agentId: id })
       logUsage(selectedAgent.key, 'session_started')
     }

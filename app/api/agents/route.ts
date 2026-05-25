@@ -51,8 +51,9 @@ export async function GET() {
               optimize_streaming_latency: 4,
             },
             conversation: {
-              // Includes agent_chat_response_part so the client SDK's
-              // onAgentChatResponsePart callback fires (live streaming text).
+              // Streaming agent_chat_response_part is intentionally OFF — when
+              // enabled it caused duplicate transcript lines (streamed bubble
+              // + final onMessage). onMessage alone is the single source of truth.
               client_events: [
                 'audio',
                 'interruption',
@@ -60,7 +61,6 @@ export async function GET() {
                 'user_transcript',
                 'agent_response_correction',
                 'agent_tool_response',
-                'agent_chat_response_part',
               ],
             },
           },
