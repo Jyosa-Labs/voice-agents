@@ -163,6 +163,7 @@ function VoiceDemoInner({
     },
     onError: (err) => console.error('[ElevenLabs]', err),
     onAgentChatResponsePart: ({ text, type, event_id }: { text: string; type: 'start' | 'delta' | 'stop'; event_id: number }) => {
+      console.log('[el] onAgentChatResponsePart', { type, event_id, text: text?.slice(0, 40) })
       if (type === 'start') {
         setLines((prev) => [
           ...prev,
@@ -179,9 +180,16 @@ function VoiceDemoInner({
         setLines((prev) =>
           prev.map((l) => (l.eventId === event_id ? { ...l, text: l.text + text } : l)),
         )
+      } else if (type === 'stop') {
+        // Finalize the streamed line even if onMessage never fires for it
+        // (some SDK versions suppress onMessage for agent text when a streaming handler is registered).
+        setLines((prev) =>
+          prev.map((l) => (l.eventId === event_id ? { ...l, tentative: false } : l)),
+        )
       }
     },
     onMessage: (msg) => {
+      console.log('[el] onMessage', msg)
       const role = msg.role === 'user' ? 'user' : 'agent'
       const now  = Date.now()
       serverLog('message', { role, text: msg.message })
@@ -208,6 +216,20 @@ function VoiceDemoInner({
           'see you', 'farewell', 'pleasure assisting', 'pleasure helping', 'pleasure talking',
           'it was a pleasure', 'good luck', 'all the best'].some((p) => lower.includes(p))
         if (isFarewell) pendingGoodbye.current = true
+      }
+
+      // Detect user cancel intent → end the session
+      if (role === 'user') {
+        const lower = msg.message.toLowerCase()
+        const cancelPhrases = [
+          "don't want to talk", "don't wanna talk", "do not want to talk",
+          'cancel the call', 'cancel this', 'end the call', 'end this call',
+          'stop the call', 'hang up', 'leave me alone', 'not interested',
+          "i'm done", 'im done', 'forget it', 'never mind', 'go away',
+        ]
+        if (cancelPhrases.some((p) => lower.includes(p))) {
+          setTimeout(() => stopRef.current?.(), 600)
+        }
       }
 
       setLines((prev) => {
