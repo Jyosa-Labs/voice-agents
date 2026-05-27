@@ -15,6 +15,11 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
 
+  // Access control
+  status     String    @default("pending") // 'pending' | 'approved' | 'rejected'
+  approvedAt DateTime?
+  approvedBy String?   // email of admin who approved, or 'auto:admin' for ADMIN_EMAILS
+
   accounts       Account[]
   sessions       Session[]
   agentInstances AgentInstance[]
