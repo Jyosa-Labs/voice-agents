@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         where: { id: user.id },
         select: { status: true },
       })
-      session.user.status = dbUser?.status ?? 'pending'
+      session.user.status = (dbUser?.status ?? 'pending') as 'pending' | 'approved' | 'rejected'
       session.user.isAdmin = isAdminEmail(session.user.email)
       return session
     },
