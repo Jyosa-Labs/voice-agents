@@ -19,16 +19,6 @@ export async function GET() {
       return Response.json({ error: 'ELEVENLABS_API_KEY is not set on the server.' }, { status: 500 })
     }
 
-    // Access control: only approved users can spin up agents
-    const dbUser = await prisma.user.findUnique({ where: { id: userId }, select: { status: true } })
-    if (dbUser?.status !== 'approved') {
-      logger.info('agents.pendingApproval', { userId, status: dbUser?.status })
-      return Response.json(
-        { error: 'pending_approval', status: dbUser?.status ?? 'pending' },
-        { status: 403 },
-      )
-    }
-
     logger.info('agents.load', { userId })
 
     const entries = await Promise.all(
